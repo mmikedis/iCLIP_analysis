@@ -40,19 +40,30 @@ sessionInfo()
 
 ## Load bedfile as genomic ranges (GRanges); convert from BED format coordinates to UCSC Genome Browser coordinates 
 bedfile = read.table(input)
+
+
+### convert bed file that's 0-based open to 1-based closed
+one.base = bedfile
+one.base$V2 = one.base$V2+1
+
+
 #bedfile = read.table("../background_transcriptome/mm10_GRCm38_MM257.tpm1_coding.utr3.exons_longest.utr3.per.gene.bed")
-my.granges <- GRanges(seqnames = bedfile$V1, ranges = IRanges(start = (bedfile$V2+1), end = bedfile$V3, names = bedfile$V4), strand = bedfile$V6)
+my.granges <- GRanges(seqnames = one.base$V1, ranges = IRanges(start = (one.base$V2), end = (one.base$V3), names = one.base$V4), strand = one.base$V6)
+
 
 ## Load list of transcript RefSeq Ids for which to get sequence information from
 ids = read.table(input_ids)
+
 
 ## Create TxDb object from UCSC Genome Bioinformatics "RefGene" transcript table
 supportedUCSCtables(genome="mm10")
 txdb <- makeTxDbFromUCSC(genome="mm10", tablename="refGene")
 
+
 ## verify that style matches between TxDb and GRanges
 seqlevelsStyle(txdb)
 seqlevelsStyle(my.granges)
+
 
 ## Extract transcripts grouped by gene from TxDb object 
 #transcriptsBytx = transcriptsBy(txdb, "gene")
@@ -60,6 +71,7 @@ seqlevelsStyle(my.granges)
 
 ## Extract the 3' UTR coordinates; use.names option keeps the RefSeq ID with the coordinate
 threeUTR <- threeUTRsByTranscript(txdb, use.names=TRUE)
+
 
 ## Extract transcript coordinates for input GRanges
 #txcoor=mapToTranscripts(my.granges, transcripts(txdb, use.names=TRUE), ignore.strand = FALSE)
@@ -78,33 +90,14 @@ txcoor_expanded = trim(my.txcoor + expand, use.names=TRUE)
 ## Convert transcript position info back to genomic position
 gcoor = mapFromTranscripts(txcoor_expanded, threeUTR, ignore.strand = FALSE) 
 
-## edit Granges of gcoor so that UCSC format is maintained (txcoor_expanded doesn't follow UCSC format, so the formatting is disrupted when converting txcoor_expanded to gcoor)
-## if sequence is on the positive strand, subtract 1 from end of range
-## if sequence is on the negative strand, add 1 to the start of the range
-i=1
-len = length(strand(gcoor))
-while (i<=len) 
-{
-	temp = (strand(gcoor)[i] == "+") 
-	if (runValue(temp) == TRUE) 
-	{
-		end(ranges(gcoor))[i] = (end(ranges(gcoor))[i])-1
-	}
-	temp2 =  (strand(gcoor)[i] == "-") 
-	if (runValue(temp2) == TRUE) 
-	{
-		start(ranges(gcoor))[i] = (start(ranges(gcoor))[i])+1
-	}
-	i=i+1
-}
-
-
 
 ## Load mm10 genome as DNAstring object
 genome <- BSgenome.Mmusculus.UCSC.mm10
 
+
 ## Extract transcript sequences
 seqs = getSeq(Mmusculus, gcoor)
+
 
 ## Export sequences as fasta file
 writeXStringSet(seqs, file=paste(output, ".fa" , sep = ""))
