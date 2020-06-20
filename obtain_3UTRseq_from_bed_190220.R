@@ -38,10 +38,10 @@ sessionInfo()
 #lib.loc = "/home/mikedis/R/x86_64-pc-linux-gnu-library/3.5/"
 
 
-## Load bedfile as genomic ranges (GRanges)
+## Load bedfile as genomic ranges (GRanges); convert from BED format coordinates to UCSC Genome Browser coordinates 
 bedfile = read.table(input)
 #bedfile = read.table("../background_transcriptome/mm10_GRCm38_MM257.tpm1_coding.utr3.exons_longest.utr3.per.gene.bed")
-my.granges <- GRanges(seqnames = bedfile$V1, ranges = IRanges(start = (bedfile$V2), end = bedfile$V3, names = bedfile$V4), strand = bedfile$V6)
+my.granges <- GRanges(seqnames = bedfile$V1, ranges = IRanges(start = (bedfile$V2+1), end = bedfile$V3, names = bedfile$V4), strand = bedfile$V6)
 
 ## Load list of transcript RefSeq Ids for which to get sequence information from
 ids = read.table(input_ids)
